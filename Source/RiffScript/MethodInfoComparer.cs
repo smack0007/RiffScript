@@ -51,6 +51,25 @@ namespace RiffScript
 			return true;
 		}
 
+		public bool Equals(MethodInfo x, string name, Type[] parameterTypes)
+		{
+			if (x.Name != name)
+				return false;
+
+			var xParameters = x.GetParameters();
+
+			if (xParameters.Length != parameterTypes.Length)
+				return false;
+
+			for (int i = 0; i < xParameters.Length; i++)
+			{
+				if (xParameters[i].ParameterType != parameterTypes[i])
+					return false;
+			}
+
+			return true;
+		}
+
 		public int GetHashCode(MethodInfo obj)
 		{
 			return obj.Name.GetHashCode() ^ obj.GetParameters().Length;

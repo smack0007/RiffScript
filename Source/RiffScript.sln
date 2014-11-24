@@ -7,6 +7,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RiffScript", "RiffScript\Ri
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RiffScriptDemo", "RiffScriptDemo\RiffScriptDemo.csproj", "{4601BCA7-AA56-41D6-B4CA-DDA8DCB6817A}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RiffScriptConsole", "RiffScriptConsole\RiffScriptConsole.csproj", "{B36B7076-B087-4FEF-B810-18C6D48FA8F1}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -21,6 +23,10 @@ Global
 		{4601BCA7-AA56-41D6-B4CA-DDA8DCB6817A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{4601BCA7-AA56-41D6-B4CA-DDA8DCB6817A}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{4601BCA7-AA56-41D6-B4CA-DDA8DCB6817A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B36B7076-B087-4FEF-B810-18C6D48FA8F1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B36B7076-B087-4FEF-B810-18C6D48FA8F1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B36B7076-B087-4FEF-B810-18C6D48FA8F1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B36B7076-B087-4FEF-B810-18C6D48FA8F1}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -18,7 +18,6 @@ namespace RiffScript
 			List<string> references = new List<string>();
 			List<string> usings = new List<string>();
 			List<string> fields = new List<string>();
-			List<string> initializers = new List<string>();
 			List<string> methods = new List<string>();
 			List<string> types = new List<string>();
 			
@@ -31,7 +30,7 @@ namespace RiffScript
 				int i = 0;
 				while (lines[i].StartsWith("#reference "))
 				{
-					string reference = lines[i].Substring(2).Trim();
+					string reference = lines[i].Substring("#reference ".Length).Trim();
 					reference = reference.Trim('"');
 
 					references.Add(reference);
@@ -59,29 +58,11 @@ namespace RiffScript
 					{
 						var field = (FieldDeclaration)member;
 
-						if (field.Modifiers.HasFlag(Modifiers.Const))
-						{
-							fields.Add(field.ToString().Trim().Indent(2));
-						}
-						else
-						{
-							foreach (var variable in field.Variables)
-							{
-								if (variable.Initializer != null)
-								{
-									initializers.Add((variable.ToString().Trim() + ";").Indent(3));
-									variable.Initializer = null;
-								}
-
-								fields.Add(field.ToString().Trim().Indent(2));
-							}
-						}
+						fields.Add(field.ToString().Trim().Indent(2));
 					}
 					else if (member is MethodDeclaration)
 					{
 						var method = (MethodDeclaration)member;
-
-						
 
 						methods.Add(method.ToString().Trim().Indent(2));
 					}
@@ -109,7 +90,6 @@ namespace RiffScript
 			source.AppendLine("\t\tpublic " + className + "(ScriptContext context)");
 			source.AppendLine("\t\t\t: base(context)");
 			source.AppendLine("\t\t{");
-			source.AppendLine(string.Join(Environment.NewLine, initializers));
 			source.AppendLine("\t\t}");
 			source.AppendLine();
 			source.AppendLine(string.Join(Environment.NewLine + Environment.NewLine, methods));
@@ -120,7 +100,7 @@ namespace RiffScript
 				references.ToArray(),
 				Namespace + "." + className,
 				source.ToString()
-				);
+			);
 		}
 	}
 }

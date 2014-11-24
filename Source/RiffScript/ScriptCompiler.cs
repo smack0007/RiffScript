@@ -31,15 +31,19 @@ namespace RiffScript
 
 		public Script Compile(string code)
 		{
-			this.scriptCount++;
-
 			using (Stream stream = StringToStream(code))
 			{
-				return this.Compile(this.generator.Generate("Script" + this.scriptCount, stream));
+				return this.Compile(stream);
 			}
 		}
 
-		public Script Compile(ClassGeneratorResult classGeneratorResult)
+		public Script Compile(Stream stream)
+		{
+			this.scriptCount++;
+			return this.Compile(this.generator.Generate("Script" + this.scriptCount, stream));
+		}
+
+		private Script Compile(ClassGeneratorResult classGeneratorResult)
 		{
 			var compilerParams = new CompilerParameters()
 			{
@@ -63,14 +67,10 @@ namespace RiffScript
 
 			if (compilerResults.Errors.Count > 0)
 			{
-				StringBuilder errors = new StringBuilder();
-				errors.AppendLine("Failed to compile script:");
-				foreach (CompilerError error in compilerResults.Errors)
-				{
-					errors.AppendLine(string.Format("({0}, {1}): {2}", error.Line, error.Column, error.ErrorText));
-				}
-
-				throw new CompileException(errors.ToString());
+				throw new ScriptCompilerException(
+					"Failed to compile script.",
+					compilerResults.Errors.Cast<CompilerError>().Select(x => new ScriptCompilerError(x.Line, x.Column, x.IsWarning, x.ErrorNumber, x.ErrorText)).ToArray()
+				);
 			}
 
 			var script = (Script)Activator.CreateInstance(compilerResults.CompiledAssembly.GetType(classGeneratorResult.FullTypeName), new object[] { new ScriptContext() });

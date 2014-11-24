@@ -31,6 +31,11 @@ namespace RiffScript
 		{
 			return this.GetScriptMethods().Select(x => x.Name);
 		}
+				
+		public bool ScriptMethodExists(string name, params Type[] parameterTypes)
+		{
+			return this.GetScriptMethods().FirstOrDefault(x => this.methodInfoComparer.Equals(x, name, parameterTypes)) != null;
+		}
 
 		public object InvokeScriptMethod(string name, params object[] parameters)
 		{
