@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using RiffScript;
+using System.Reflection;
 
 namespace RiffScriptConsole
 {
@@ -24,15 +25,41 @@ namespace RiffScriptConsole
 				return 1;
 			}
 
-			ScriptCompiler compiler = new ScriptCompiler();
+			Compiler compiler = new Compiler();
 
 			Script script = null;
 
+            CompilerParameters parameters = new CompilerParameters();
+
+            string scriptDirectory = Path.GetDirectoryName(args[0]);
+            Dictionary<string, Assembly> assemblies = new Dictionary<string, Assembly>();
+
+            if (Directory.Exists(Path.Combine(scriptDirectory, "references")))
+            {
+                foreach (string dllFile in Directory.GetFiles(Path.Combine(scriptDirectory, "references"), "*.dll"))
+                {
+                    parameters.ReferencedAssemblies.Add(dllFile);
+
+                    Assembly assembly = Assembly.LoadFile(dllFile);
+                    assemblies[assembly.FullName] = assembly;
+                }
+            }
+
+            AppDomain.CurrentDomain.AssemblyResolve += (s, e) =>
+            {
+                if (assemblies.ContainsKey(e.Name))
+                {
+                    return assemblies[e.Name];
+                }
+
+                return null;
+            };
+
 			try
 			{
-				script = compiler.Compile(File.OpenRead(args[0]));
+				script = compiler.Compile(File.OpenRead(args[0]), parameters);
 			}
-			catch (ScriptCompilerException ex)
+			catch (CompilerException ex)
 			{
 				Console.Error.WriteLine("Errors while compiling script:");
 
@@ -44,11 +71,11 @@ namespace RiffScriptConsole
 				return 1;
 			}
 
-			object result = null;
+			ScriptMethodResult result = null;
 
 			if (script.ScriptMethodExists("Main", typeof(string[])))
 			{
-				string[] scriptArgs = args.Skip(1).ToArray();
+				object[] scriptArgs = new object[] { args.Skip(1).ToArray() };
 				result = script.InvokeScriptMethod("Main", scriptArgs);
 			}
 			else if (script.ScriptMethodExists("Main"))
@@ -61,9 +88,18 @@ namespace RiffScriptConsole
 				return 1;
 			}
 
-			if (result is int)
+            if (result.Exception != null)
+            {
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.Error.WriteLine("Exception thrown during script execution:");
+                Console.Error.WriteLine(result.Exception);
+                Console.ResetColor();
+                return 2;
+            }
+
+			if (result.ReturnValue is int)
 			{
-				return (int)result;
+				return (int)result.ReturnValue;
 			}
 
 			return 0;

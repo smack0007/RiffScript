@@ -37,14 +37,25 @@ namespace RiffScript
 			return this.GetScriptMethods().FirstOrDefault(x => this.methodInfoComparer.Equals(x, name, parameterTypes)) != null;
 		}
 
-		public object InvokeScriptMethod(string name, params object[] parameters)
+		public ScriptMethodResult InvokeScriptMethod(string name, params object[] parameters)
 		{
 			MethodInfo method = this.GetScriptMethods().FirstOrDefault(x => this.methodInfoComparer.Equals(x, name, parameters));
 
 			if (method == null)
 				throw new ScriptException(string.Format("Unable to locate method \"{0}\". Either no method with that name exists or unable to match the given parameters.", name));
 
-			return method.Invoke(this, parameters);
+            ScriptMethodResult result = new ScriptMethodResult();
+
+            try
+            {
+                result.ReturnValue = method.Invoke(this, parameters);
+            }
+			catch (TargetInvocationException ex)
+            {
+                result.Exception = ex.InnerException;
+            }
+
+            return result;
 		}
 	}
 }

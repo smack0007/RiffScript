@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace RiffScript
 {
-	public class ScriptCompilerError
+	public class CompilerError
 	{
 		public int Line
 		{
@@ -38,7 +38,7 @@ namespace RiffScript
 			private set;
 		}
 
-		internal ScriptCompilerError(int line, int column, bool isWarning, string errorNumber, string errorText)
+		internal CompilerError(int line, int column, bool isWarning, string errorNumber, string errorText)
 		{
 			this.Line = line;
 			this.Column = column;

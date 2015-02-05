@@ -6,15 +6,15 @@ using System.Threading.Tasks;
 
 namespace RiffScript
 {
-	public class ScriptCompilerException : Exception
+	public class CompilerException : Exception
 	{
-		public IReadOnlyCollection<ScriptCompilerError> Errors
+		public IReadOnlyCollection<CompilerError> Errors
 		{
 			get;
 			private set;
 		}
 
-		internal ScriptCompilerException(string message, ScriptCompilerError[] errors)
+		internal CompilerException(string message, CompilerError[] errors)
 			: base(message)
 		{
 			this.Errors = errors;

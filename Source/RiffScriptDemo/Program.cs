@@ -13,8 +13,7 @@ namespace RiffScriptDemo
 	{
 		public static void Main(string[] args)
 		{
-			ScriptCompiler compiler = new ScriptCompiler();
-			var result = compiler.Compile(@"
+            string code = @"
 using System;
 
 public class MyClass
@@ -46,7 +45,11 @@ public void Main()
 		Console.WriteLine(""Hello World! {0}"", i);
 	}
 }
-");
+";
+
+			Compiler compiler = new Compiler();
+			var result = compiler.Compile(code, new CompilerParameters());
+
 			result.InvokeScriptMethod("Main");
 			result.InvokeScriptMethod("Foo");
 			result.InvokeScriptMethod("Foo", "Bob");

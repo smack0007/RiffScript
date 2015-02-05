@@ -67,14 +67,16 @@
   <ItemGroup>
     <Compile Include="ClassGenerator.cs" />
     <Compile Include="ClassGeneratorResult.cs" />
-    <Compile Include="ScriptCompilerException.cs" />
-    <Compile Include="ScriptCompilerError.cs" />
+    <Compile Include="CompilerException.cs" />
+    <Compile Include="CompilerError.cs" />
+    <Compile Include="CompilerParameters.cs" />
     <Compile Include="MethodInfoComparer.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Script.cs" />
-    <Compile Include="ScriptCompiler.cs" />
+    <Compile Include="Compiler.cs" />
     <Compile Include="ScriptContext.cs" />
     <Compile Include="ScriptException.cs" />
+    <Compile Include="ScriptMethodResult.cs" />
     <Compile Include="StringExtensions.cs" />
   </ItemGroup>
   <ItemGroup>
