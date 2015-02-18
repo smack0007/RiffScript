@@ -25,18 +25,31 @@ namespace RiffScriptConsole
 				return 1;
 			}
 
+            string[] scriptArgs = null;
+
+            for (int i = 0; i < args.Length; i++)
+            {
+                if (args[i] == "--")
+                {
+                    scriptArgs = args.Skip(i + 1).ToArray();
+                }
+            }
+
+            if (scriptArgs == null)
+                scriptArgs = new string[0];
+
 			Compiler compiler = new Compiler();
 
 			Script script = null;
 
             CompilerParameters parameters = new CompilerParameters();
 
-            string scriptDirectory = Path.GetDirectoryName(args[0]);
+            string scriptDirectory = Path.GetDirectoryName(Path.GetFullPath(args[0]));
             Dictionary<string, Assembly> assemblies = new Dictionary<string, Assembly>();
 
             if (Directory.Exists(Path.Combine(scriptDirectory, "references")))
             {
-                foreach (string dllFile in Directory.GetFiles(Path.Combine(scriptDirectory, "references"), "*.dll"))
+                foreach (string dllFile in Directory.GetFiles(Path.Combine(scriptDirectory, "references"), "*.dll").Select(x => Path.GetFullPath(x)))
                 {
                     parameters.ReferencedAssemblies.Add(dllFile);
 
@@ -61,22 +74,24 @@ namespace RiffScriptConsole
 			}
 			catch (CompilerException ex)
 			{
+                Console.ForegroundColor = ConsoleColor.Red;
 				Console.Error.WriteLine("Errors while compiling script:");
-
 				foreach (var error in ex.Errors)
 				{
 					Console.Error.WriteLine("({0},{1}): error {2}: {3}", error.Line, error.Column, error.ErrorNumber, error.ErrorText);
 				}
+                Console.ResetColor();
 
 				return 1;
 			}
+
+            Directory.SetCurrentDirectory(scriptDirectory);
 
 			ScriptMethodResult result = null;
 
 			if (script.ScriptMethodExists("Main", typeof(string[])))
 			{
-				object[] scriptArgs = new object[] { args.Skip(1).ToArray() };
-				result = script.InvokeScriptMethod("Main", scriptArgs);
+				result = script.InvokeScriptMethod("Main", new object[] { scriptArgs });
 			}
 			else if (script.ScriptMethodExists("Main"))
 			{
