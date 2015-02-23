@@ -8,7 +8,7 @@ namespace RiffScript
 {
 	public class CompilerException : Exception
 	{
-		public IReadOnlyCollection<CompilerError> Errors
+		public IEnumerable<CompilerError> Errors
 		{
 			get;
 			private set;

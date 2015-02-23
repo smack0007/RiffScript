@@ -16,7 +16,7 @@ namespace RiffScript
 		{
 			List<string> lines = new List<string>();
 			List<string> references = new List<string>();
-			List<string> usings = new List<string>();
+			List<string> usings = new List<string>() { "using System;", "using System.Collections.Generic;", "using System.Linq;", "using System.Text;", "using System.Threading;", "using System.Threading.Tasks;" };
 			List<string> fields = new List<string>();
 			List<string> methods = new List<string>();
 			List<string> types = new List<string>();
@@ -77,7 +77,7 @@ namespace RiffScript
 
 			StringBuilder source = new StringBuilder();
 
-			source.AppendLine(string.Join(Environment.NewLine, usings));
+			source.AppendLine(string.Join(Environment.NewLine, usings.Distinct()));
 			source.AppendLine();
 			source.AppendLine(string.Format("namespace {0}", Namespace));
 			source.AppendLine("{");
