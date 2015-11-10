@@ -46,5 +46,16 @@ namespace RiffScript
 			this.ErrorNumber = errorNumber;
 			this.ErrorText = errorText;
 		}
-	}
+
+        public override string ToString()
+        {
+            return string.Format(
+                "({0}, {1}) {2} {3} {4}",
+                this.Line,
+                this.Column,
+                this.IsWarning ? "Warning" : "Error",
+                this.ErrorNumber,
+                this.ErrorText);
+        }
+    }
 }

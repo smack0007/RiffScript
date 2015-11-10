@@ -6,6 +6,8 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 
 namespace RiffScript
 {
@@ -45,56 +47,66 @@ namespace RiffScript
 
 		private Script Compile(ClassGeneratorResult classGeneratorResult, CompilerParameters parameters)
 		{
-            var compilerParams = new System.CodeDom.Compiler.CompilerParameters()
-			{
-				GenerateInMemory = true
-			};
+            string gacPath = Path.GetDirectoryName(typeof(object).Assembly.Location);
 
-			compilerParams.ReferencedAssemblies.Add(Assembly.GetExecutingAssembly().Location);
-            compilerParams.ReferencedAssemblies.Add("System.dll");
-            compilerParams.ReferencedAssemblies.Add("System.Core.dll");
-            compilerParams.ReferencedAssemblies.Add("System.Data.dll");
-            compilerParams.ReferencedAssemblies.Add("System.Data.DataSetExtensions.dll");
-            compilerParams.ReferencedAssemblies.Add("System.Net.dll");
-            compilerParams.ReferencedAssemblies.Add("System.Xml.dll");
-            compilerParams.ReferencedAssemblies.Add("System.Xml.Linq.dll");
-
-            foreach (var reference in parameters.ReferencedAssemblies)
+            List<MetadataReference> references = new List<MetadataReference>()
             {
-                string name = reference;
+                MetadataReference.CreateFromFile(Path.Combine(gacPath, "mscorlib.dll")),
+                MetadataReference.CreateFromFile(Path.Combine(gacPath, "Microsoft.CSharp.dll")),
+                MetadataReference.CreateFromFile(Path.Combine(gacPath, "System.dll")),
+                MetadataReference.CreateFromFile(Path.Combine(gacPath, "System.Core.dll")),
+                MetadataReference.CreateFromFile(Path.Combine(gacPath, "System.Data.dll")),
+                MetadataReference.CreateFromFile(Path.Combine(gacPath, "System.Data.DataSetExtensions.dll")),
+                MetadataReference.CreateFromFile(Path.Combine(gacPath, "System.Xml.dll")),
+                MetadataReference.CreateFromFile(Path.Combine(gacPath, "System.Xml.Linq.dll")),
+                MetadataReference.CreateFromFile(typeof(Script).Assembly.Location)
+            };
 
-                if (!name.EndsWith(".dll"))
-                    name = name + ".dll";
+            foreach (var reference in parameters.ReferencedAssemblies.Concat(classGeneratorResult.References))
+            {
+                string path = reference;
 
-                compilerParams.ReferencedAssemblies.Add(name);
+                if (!path.EndsWith(".dll"))
+                    path = path + ".dll";
+
+                if (!File.Exists(path))
+                    path = Path.Combine(gacPath, path);
+
+                references.Add(MetadataReference.CreateFromFile(Path.Combine(gacPath, path)));
             }
 
-			foreach (var reference in classGeneratorResult.References)
-			{
-				string name = reference;
+            var compilation = CSharpCompilation.Create(classGeneratorResult.FullTypeName + ".dll")
+                .WithOptions(new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary))
+                .WithReferences(references)
+                .AddSyntaxTrees(CSharpSyntaxTree.ParseText(classGeneratorResult.Source));
 
-				if (!name.EndsWith(".dll"))
-					name = name + ".dll";
+            Assembly assembly = null;
 
-				compilerParams.ReferencedAssemblies.Add(name);
-			}
+            using (MemoryStream ms = new MemoryStream(1024))
+            {
+                var emitResult = compilation.Emit(ms);
 
-			var compiler = CodeDomProvider.CreateProvider("CSharp");
-			var compilerResults = compiler.CompileAssemblyFromSource(compilerParams, classGeneratorResult.Source);
+                if (!emitResult.Success)
+                {
+                    throw new CompilerException(
+                        "Failed to compile script.",
+                        emitResult
+                            .Diagnostics
+                            .Select(x => new CompilerError(
+                                x.Location.GetLineSpan().StartLinePosition.Line,
+                                x.Location.GetLineSpan().StartLinePosition.Character,
+                                x.Severity == DiagnosticSeverity.Error,
+                                x.Id,
+                                x.GetMessage()
+                            ))
+                            .ToArray()
+                    );
+                }
 
-			if (compilerResults.Errors.Count > 0)
-			{
-				throw new CompilerException(
-					"Failed to compile script.",
-                    compilerResults.Errors
-                        .Cast<System.CodeDom.Compiler.CompilerError>()
-                        .Select(x => new CompilerError(x.Line, x.Column, x.IsWarning, x.ErrorNumber, x.ErrorText))
-                        .ToArray()
-				);
-			}
-
-			var script = (Script)Activator.CreateInstance(compilerResults.CompiledAssembly.GetType(classGeneratorResult.FullTypeName), new object[] { new ScriptContext() });
-			return script;
+                assembly = Assembly.Load(ms.ToArray());
+            }
+                        
+			return (Script)Activator.CreateInstance(assembly.GetType(classGeneratorResult.FullTypeName), new object[] { new ScriptContext() });
 		}
 	}
 }

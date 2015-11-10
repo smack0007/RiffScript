@@ -3,24 +3,15 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
-using ICSharpCode.NRefactory.CSharp;
+using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace RiffScript
 {
     public class ClassGenerator
     {
         private const string Namespace = "RiffScript.CompiledScripts";
-
-        private readonly string[] StandardUsings = new string[]
-        {
-            "using System;",
-            "using System.Collections.Generic;",
-            "using System.Linq;",
-            "using System.Text;",
-            "using System.Threading;",
-            "using System.Threading.Tasks;"
-        };
-
+                
         private static string LineDirective(int line)
         {
             return "#line " + line + Environment.NewLine;
@@ -30,7 +21,7 @@ namespace RiffScript
         {
             List<string> lines = new List<string>();
             List<string> references = new List<string>();
-            List<string> usings = new List<string>(StandardUsings);
+            List<string> usings = new List<string>();
             List<string> fields = new List<string>();
             List<string> methods = new List<string>();
             List<string> types = new List<string>();
@@ -39,53 +30,46 @@ namespace RiffScript
             while (!sr.EndOfStream)
                 lines.Add(sr.ReadLine());
 
-            if (lines.Count > 0)
+            int i = 0;
+            while (lines[i].StartsWith("#reference "))
             {
-                int i = 0;
-                while (lines[i].StartsWith("#reference "))
+                string reference = lines[i].Substring("#reference ".Length).Trim();
+                reference = reference.Trim('"');
+
+                references.Add(reference);
+
+                i++;
+            }
+
+            string script = string.Join(Environment.NewLine, lines);
+
+            var syntaxTree = CSharpSyntaxTree.ParseText(script);
+
+            var directive = syntaxTree.GetRoot().GetFirstDirective();
+
+            foreach (var node in syntaxTree.GetRoot().ChildNodes())
+            {
+                var line = node.GetLocation().GetLineSpan().StartLinePosition.Line;
+
+                if (node is UsingDirectiveSyntax)
                 {
-                    string reference = lines[i].Substring("#reference ".Length).Trim();
-                    reference = reference.Trim('"');
-
-                    references.Add(reference);
-
-                    i++;
+                    usings.Add(LineDirective(line) + node.ToString());
                 }
-
-                while (i < lines.Count && string.IsNullOrWhiteSpace(lines[i]))
-                    i++;
-
-                while (i < lines.Count && lines[i].StartsWith("using ") && !lines[i].Contains("("))
+                else if (node is FieldDeclarationSyntax)
                 {
-                    usings.Add(LineDirective(i) + lines[i].Trim());
-                    i++;
+                    fields.Add(LineDirective(line) + node.ToString());
                 }
-
-                string script = string.Join(Environment.NewLine, lines.Skip(i));
-
-                CSharpParser parser = new CSharpParser();
-                var members = parser.ParseTypeMembers(script);
-
-                foreach (var member in members)
+                else if (node is MethodDeclarationSyntax)
                 {
-                    if (member is FieldDeclaration)
-                    {
-                        var field = (FieldDeclaration)member;
-
-                        fields.Add(field.ToString().Trim().Indent(2));
-                    }
-                    else if (member is MethodDeclaration)
-                    {
-                        var method = (MethodDeclaration)member;
-
-                        methods.Add(method.ToString().Trim().Indent(2));
-                    }
-                    else if (member is TypeDeclaration)
-                    {
-                        var type = (TypeDeclaration)member;
-
-                        types.Add(type.ToString().Trim().Indent(2));
-                    }
+                    methods.Add(LineDirective(line) + node.ToString());
+                }
+                else if (node is TypeDeclarationSyntax)
+                {
+                    types.Add(LineDirective(line) + node.ToString());
+                }
+                else
+                {
+                    throw new NotImplementedException("Unhandled node type " + node.GetType());
                 }
             }
 
