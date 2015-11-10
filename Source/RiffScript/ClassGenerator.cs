@@ -3,104 +3,118 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 using ICSharpCode.NRefactory.CSharp;
 
 namespace RiffScript
 {
-	public class ClassGenerator
-	{
-		const string Namespace = "RiffScript.CompiledScripts";
+    public class ClassGenerator
+    {
+        private const string Namespace = "RiffScript.CompiledScripts";
 
-		public ClassGeneratorResult Generate(string className, Stream input)
-		{
-			List<string> lines = new List<string>();
-			List<string> references = new List<string>();
-			List<string> usings = new List<string>() { "using System;", "using System.Collections.Generic;", "using System.Linq;", "using System.Text;", "using System.Threading;", "using System.Threading.Tasks;" };
-			List<string> fields = new List<string>();
-			List<string> methods = new List<string>();
-			List<string> types = new List<string>();
-			
-			StreamReader sr = new StreamReader(input);
-			while (!sr.EndOfStream)
-				lines.Add(sr.ReadLine());
+        private readonly string[] StandardUsings = new string[]
+        {
+            "using System;",
+            "using System.Collections.Generic;",
+            "using System.Linq;",
+            "using System.Text;",
+            "using System.Threading;",
+            "using System.Threading.Tasks;"
+        };
 
-			if (lines.Count > 0)
-			{
-				int i = 0;
-				while (lines[i].StartsWith("#reference "))
-				{
-					string reference = lines[i].Substring("#reference ".Length).Trim();
-					reference = reference.Trim('"');
+        private static string LineDirective(int line)
+        {
+            return "#line " + line + Environment.NewLine;
+        }
 
-					references.Add(reference);
+        public ClassGeneratorResult Generate(string className, Stream input)
+        {
+            List<string> lines = new List<string>();
+            List<string> references = new List<string>();
+            List<string> usings = new List<string>(StandardUsings);
+            List<string> fields = new List<string>();
+            List<string> methods = new List<string>();
+            List<string> types = new List<string>();
 
-					i++;
-				}
+            StreamReader sr = new StreamReader(input);
+            while (!sr.EndOfStream)
+                lines.Add(sr.ReadLine());
 
-				while (i < lines.Count && string.IsNullOrWhiteSpace(lines[i]))
-					i++;
+            if (lines.Count > 0)
+            {
+                int i = 0;
+                while (lines[i].StartsWith("#reference "))
+                {
+                    string reference = lines[i].Substring("#reference ".Length).Trim();
+                    reference = reference.Trim('"');
 
-				while (i < lines.Count && lines[i].StartsWith("using ") && !lines[i].Contains("("))
-				{
-					usings.Add(lines[i].Trim());
-					i++;
-				}
+                    references.Add(reference);
 
-				string script = string.Join(Environment.NewLine, lines.Skip(i));
+                    i++;
+                }
 
-				CSharpParser parser = new CSharpParser();
-				var members = parser.ParseTypeMembers(script);
+                while (i < lines.Count && string.IsNullOrWhiteSpace(lines[i]))
+                    i++;
 
-				foreach (var member in members)
-				{
-					if (member is FieldDeclaration)
-					{
-						var field = (FieldDeclaration)member;
+                while (i < lines.Count && lines[i].StartsWith("using ") && !lines[i].Contains("("))
+                {
+                    usings.Add(LineDirective(i) + lines[i].Trim());
+                    i++;
+                }
 
-						fields.Add(field.ToString().Trim().Indent(2));
-					}
-					else if (member is MethodDeclaration)
-					{
-						var method = (MethodDeclaration)member;
+                string script = string.Join(Environment.NewLine, lines.Skip(i));
 
-						methods.Add(method.ToString().Trim().Indent(2));
-					}
-					else if (member is TypeDeclaration)
-					{
-						var type = (TypeDeclaration)member;
+                CSharpParser parser = new CSharpParser();
+                var members = parser.ParseTypeMembers(script);
 
-						types.Add(type.ToString().Trim().Indent(2));
-					}
-				}
-			}
+                foreach (var member in members)
+                {
+                    if (member is FieldDeclaration)
+                    {
+                        var field = (FieldDeclaration)member;
 
-			StringBuilder source = new StringBuilder();
+                        fields.Add(field.ToString().Trim().Indent(2));
+                    }
+                    else if (member is MethodDeclaration)
+                    {
+                        var method = (MethodDeclaration)member;
 
-			source.AppendLine(string.Join(Environment.NewLine, usings.Distinct()));
-			source.AppendLine();
-			source.AppendLine(string.Format("namespace {0}", Namespace));
-			source.AppendLine("{");
-			source.AppendLine("\tpublic class " + className + " : Script");
-			source.AppendLine("\t{");
-			source.AppendLine(string.Join(Environment.NewLine, types));
-			source.AppendLine();
-			source.AppendLine(string.Join(Environment.NewLine, fields));
-			source.AppendLine();
-			source.AppendLine("\t\tpublic " + className + "(ScriptContext context)");
-			source.AppendLine("\t\t\t: base(context)");
-			source.AppendLine("\t\t{");
-			source.AppendLine("\t\t}");
-			source.AppendLine();
-			source.AppendLine(string.Join(Environment.NewLine + Environment.NewLine, methods));
-			source.AppendLine("\t}");
-			source.AppendLine("}");
+                        methods.Add(method.ToString().Trim().Indent(2));
+                    }
+                    else if (member is TypeDeclaration)
+                    {
+                        var type = (TypeDeclaration)member;
 
-			return new ClassGeneratorResult(
-				references.ToArray(),
-				Namespace + "." + className,
-				source.ToString()
-			);
-		}
-	}
+                        types.Add(type.ToString().Trim().Indent(2));
+                    }
+                }
+            }
+
+            StringBuilder source = new StringBuilder();
+
+            source.AppendLine(string.Join(Environment.NewLine, usings.Distinct()));
+            source.AppendLine();
+            source.AppendLine(string.Format("namespace {0}", Namespace));
+            source.AppendLine("{");
+            source.AppendLine("\tpublic class " + className + " : Script");
+            source.AppendLine("\t{");
+            source.AppendLine(string.Join(Environment.NewLine, types));
+            source.AppendLine();
+            source.AppendLine(string.Join(Environment.NewLine, fields));
+            source.AppendLine();
+            source.AppendLine("\t\tpublic " + className + "(ScriptContext context)");
+            source.AppendLine("\t\t\t: base(context)");
+            source.AppendLine("\t\t{");
+            source.AppendLine("\t\t}");
+            source.AppendLine();
+            source.AppendLine(string.Join(Environment.NewLine + Environment.NewLine, methods));
+            source.AppendLine("\t}");
+            source.AppendLine("}");
+
+            return new ClassGeneratorResult(
+                references.ToArray(),
+                Namespace + "." + className,
+                source.ToString()
+            );
+        }
+    }
 }
