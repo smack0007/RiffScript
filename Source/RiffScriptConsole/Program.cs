@@ -78,7 +78,7 @@ namespace RiffScriptConsole
 				Console.Error.WriteLine("Errors while compiling script:");
 				foreach (var error in ex.Errors)
 				{
-					Console.Error.WriteLine("({0},{1}): error {2}: {3}", error.Line, error.Column, error.ErrorNumber, error.ErrorText);
+					Console.Error.WriteLine(error);
 				}
                 Console.ResetColor();
 
